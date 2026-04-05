@@ -5,7 +5,14 @@
 
 AUT_MainField::AUT_MainField()
 {
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
+	
+	MainScene = CreateDefaultSubobject<USceneComponent>("MainScene");
+	RootComponent = MainScene;
+	
+	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
+	Camera->SetupAttachment(MainScene);
+	
 }
 
 void AUT_MainField::BeginPlay()
@@ -14,8 +21,9 @@ void AUT_MainField::BeginPlay()
 	
 }
 
-void AUT_MainField::Tick(float DeltaTime)
+void AUT_MainField::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	Super::Tick(DeltaTime);
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
+
 

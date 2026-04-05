@@ -15,12 +15,19 @@ class UNREALTETRIS_API AUT_MainField : public APawn
 public:
 	
 	AUT_MainField();
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<USceneComponent> MainScene;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UCameraComponent> Camera;
+	
+	
 
 protected:
 
 	virtual void BeginPlay() override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-public:
 
-	virtual void Tick(float DeltaTime) override;
 };
