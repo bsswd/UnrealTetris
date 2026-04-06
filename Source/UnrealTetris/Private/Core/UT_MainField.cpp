@@ -27,14 +27,16 @@ AUT_MainField::AUT_MainField()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	
-	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
-	Camera->SetupAttachment(MainScene);	
-	Camera->SetRelativeLocation(FVector(500.f, 25000.f, 900.f));
-	Camera->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
-	Camera->SetFieldOfView(10.f);
-	
 	MainScene = CreateDefaultSubobject<USceneComponent>("MainScene");
 	RootComponent = MainScene;
+	
+	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
+	Camera->SetupAttachment(MainScene);
+	Camera->bConstrainAspectRatio = true;
+	Camera->AspectRatio = 9.0f / 16.0f;
+	Camera->SetRelativeLocation(FVector(500.f, 25000.f, 700.f));
+	Camera->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+	Camera->SetFieldOfView(4.5f);
 	
 	Borders = CreateDefaultSubobject<USceneComponent>("Borders");
 	Borders->SetupAttachment(MainScene);
