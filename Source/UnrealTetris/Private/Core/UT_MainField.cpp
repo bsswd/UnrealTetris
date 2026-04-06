@@ -118,6 +118,8 @@ void AUT_MainField::BeginPlay()
 	
 	MainWidget->OnMoveClicked.AddDynamic(this, &AUT_MainField::MoveFromUI);
 	
+	MainWidget->SwitchToGame();
+	
 	
 	SetActorLocation(FVector(0.f));
 	SetActorRotation(FRotator(0.f));

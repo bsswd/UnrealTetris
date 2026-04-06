@@ -6,6 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UT_MainWidget.generated.h"
 
+class UWidgetSwitcher;
 class UTextBlock;
 class UButton;
 
@@ -25,6 +26,10 @@ public:
 	
 	UPROPERTY(meta=(BindWidget))
 	TObjectPtr<UTextBlock> Level;
+	
+	
+	UPROPERTY(meta=(BindWidget))
+	TObjectPtr<UWidgetSwitcher> Switcher;
 	
 	
 	UPROPERTY(meta=(BindWidget))
@@ -86,6 +91,12 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void OnRotateButtonTap();
+	
+	UFUNCTION(BlueprintCallable)
+	void SwitchToGame();
+	
+	UFUNCTION(BlueprintCallable)
+	void SwitchToMenu();
 	
 	
 protected:

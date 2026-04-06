@@ -3,6 +3,7 @@
 
 #include "UI/UT_MainWidget.h"
 #include "Components/Button.h"
+#include "Components/WidgetSwitcher.h"
 
 
 void UUT_MainWidget::NativeConstruct()
@@ -81,4 +82,14 @@ void UUT_MainWidget::OnRotateButtonTap()
 {
 	UE_LOG(LogTemp, Warning, TEXT("UUT_MainWidget::OnRotateButtonTap()"));
 	OnRotateClicked.Broadcast();
+}
+
+void UUT_MainWidget::SwitchToGame()
+{
+	Switcher->SetActiveWidgetIndex(0);
+}
+
+void UUT_MainWidget::SwitchToMenu()
+{
+	Switcher->SetActiveWidgetIndex(1);
 }
