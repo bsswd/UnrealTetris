@@ -9,6 +9,7 @@
 #define WIDTHCELLS 10
 #define HEIGHTCELLS 20
 
+class UUT_MainWidget;
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
@@ -43,6 +44,13 @@ public:
     
     UPROPERTY(EditAnywhere)
 	TObjectPtr<UStaticMeshComponent> BottomBorder;
+	
+	
+	UPROPERTY(EditAnywhere, Category="UT|UI")
+	TSubclassOf<UUT_MainWidget> MainWidgetClass;
+ 
+	UPROPERTY()
+	TObjectPtr<UUT_MainWidget> MainWidget;
 	
 	
 	TArray<TObjectPtr<UStaticMeshComponent>> Field;
@@ -107,24 +115,51 @@ protected:
 	
 private:
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "UT|Input")
 	TObjectPtr<UInputMappingContext> InputMappingContext;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "UT|Input")
 	TObjectPtr<UInputAction> MoveAction;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "UT|Input")
 	TObjectPtr<UInputAction> DropAction;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category = "UT|Input")
 	TObjectPtr<UInputAction> RotateAction;
 	
-	UPROPERTY(EditAnywhere)
+	
+	UPROPERTY(EditAnywhere, Category = "UT|Gameplay")
 	TArray<float> Speed;
 	
 	
+	UPROPERTY(EditAnywhere, Category = "UT|Sound")
+	USoundBase* ClearRowSound;
+	
+	UPROPERTY(EditAnywhere, Category = "UT|Sound")
+	USoundBase* DropDownSound;
+	
+	UPROPERTY(EditAnywhere, Category = "UT|Sound")
+	USoundBase* LevelUpSound;
+	
+	UPROPERTY(EditAnywhere, Category = "UT|Sound")
+	USoundBase* MoveSound;
+	
+	UPROPERTY(EditAnywhere, Category = "UT|Sound")
+	USoundBase* RotateSound;
+	
+	
+	UFUNCTION()
 	void Move(const FInputActionValue& Value);
+	
+	UFUNCTION()
+	void MoveFromUI(float Direction);
+	
+	UFUNCTION()
 	void Drop();
+	
+	UFUNCTION()
 	void DropRelease();
+	
+	UFUNCTION()
 	void Rotate();	
 };

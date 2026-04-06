@@ -1,12 +1,14 @@
 ﻿// Unreal Tetris Game. Made by Alex Sinkin. (c)
 
 #include "UnrealTetris/Public/Core/UT_MainField.h"
-
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "Blueprint/UserWidget.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/UT_Brick.h"
+#include "Kismet/GameplayStatics.h"
+#include "UI/UT_MainWidget.h"
 #include "UObject/ConstructorHelpers.h"
 
 #define CYCLEFOR(I) for (int32 i = 0; i < I; i++)
@@ -92,6 +94,31 @@ void AUT_MainField::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+
+	if (!MainWidgetClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::BeginPlay() --- MainWidgetClass is null!"))
+		return;
+	}
+	
+	MainWidget = CreateWidget<UUT_MainWidget>(PC, MainWidgetClass);
+	
+	if (!MainWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::BeginPlay() --- MainWidget is null!"))
+		return;
+	}
+	
+	MainWidget->AddToViewport();
+	
+	MainWidget->OnRotateClicked.AddDynamic(this, &AUT_MainField::Rotate);
+	MainWidget->OnDropPressed.AddDynamic(this, &AUT_MainField::Drop);
+	MainWidget->OnDropReleased.AddDynamic(this, &AUT_MainField::DropRelease);
+	
+	MainWidget->OnMoveClicked.AddDynamic(this, &AUT_MainField::MoveFromUI);
+	
+	
 	SetActorLocation(FVector(0.f));
 	SetActorRotation(FRotator(0.f));
 	
@@ -157,6 +184,20 @@ void AUT_MainField::Move(const FInputActionValue& Value)
 	{
 		ApplyFigurePoint(CurrentFigure);
 	}
+	
+	if (!MoveSound)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Move() --- No MoveSound!"));
+		return;
+	}
+	
+	UGameplayStatics::PlaySound2D(this, MoveSound);
+}
+
+void AUT_MainField::MoveFromUI(float Direction)
+{
+	FInputActionValue FakeValue(Direction);
+	Move(FakeValue);
 }
 
 void AUT_MainField::Drop()
@@ -186,6 +227,13 @@ void AUT_MainField::DropRelease()
 void AUT_MainField::Rotate()
 {
 	RotateFigure(CurrentFigure);
+	
+	if (!RotateSound)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Rotate() --- No RotateSound!"));
+		return;
+	}
+	UGameplayStatics::PlaySound2D(this, RotateSound);
 }
 
 
@@ -339,6 +387,14 @@ void AUT_MainField::ReleaseFigure()
 	}
 	
 	CheckRow();
+	
+	if (!DropDownSound)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::ReleaseFigure() --- No DropDownSound!"));
+		return;
+	}
+		
+	UGameplayStatics::PlaySound2D(this, DropDownSound);
 }
 
 void AUT_MainField::DeleteRow()
@@ -367,6 +423,14 @@ void AUT_MainField::DeleteRow()
 				{
 					Field[WIDTHCELLS * Row + Col]->DestroyComponent();
 					Field[WIDTHCELLS * Row + Col] = nullptr;
+					
+					if (!ClearRowSound)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::DeleteRow() --- No ClearRowSound!"))
+						return;
+					}
+					
+					UGameplayStatics::PlaySound2D(this, ClearRowSound);
 				}
 
 				else
