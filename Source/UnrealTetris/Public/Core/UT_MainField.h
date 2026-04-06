@@ -9,6 +9,9 @@
 #define WIDTHCELLS 10
 #define HEIGHTCELLS 20
 
+struct FInputActionValue;
+class UInputAction;
+class UInputMappingContext;
 class UStaticMeshComponent;
 class UCameraComponent;
 class UUT_Brick;
@@ -44,8 +47,12 @@ public:
 	
 	TArray<TObjectPtr<UStaticMeshComponent>> Field;
 	
-	void MoveDownByTimer();
+	void MoveVerticalByTimer();
+	void MoveHorizontalByTimer();
 	void ReleaseFigure();
+	
+	void CheckRow();
+	void DeleteRow();
 	
 
 protected:
@@ -57,25 +64,31 @@ protected:
 	TArray<TObjectPtr<UUT_Brick>> CurrentFigure;
 	
 	UPROPERTY()
-	TArray<TObjectPtr<UMaterialInstance>> BrickColors; 
+	TArray<TObjectPtr<UMaterialInstance>> BrickColors;
+	
+	UPROPERTY()
+	TArray<int32> FullRows;
 	
 	bool bIsGameInProgress;
 	
-	FTimerHandle MoveDownTimerHandle;
-	FTimerHandle MoveRightTimerHandle;
-	FTimerHandle MoveLeftTimerHandle;
+	FTimerHandle MoveVerticalTimerHandle;
+	FTimerHandle MoveHorizontalTimerHandle;
 	FTimerHandle ClearRowTimerHandle;
+	
+	int32 CurrentLevel;
+	int32 CurrentSpeed;
+	
 	
 	bool CheckCurrentFigurePosition();
 	bool CheckNewFigurePosition();
 	
-	void MoveVerticalCurrentFigure(int Amount, bool bBottom = true, bool bSaveCurrentPosition = false);
-	void MoveHorizontalCurrentFigure(int Amount, bool bRight =true,	bool bSaveCurrentPosition = false);
+	void MoveVerticalCurrentFigure(int32 Amount, bool bBottom = true, bool bSaveCurrentPosition = false);
+	void MoveHorizontalCurrentFigure(int32 Amount, bool bRight =true,	bool bSaveCurrentPosition = false);
 	
-	int GetMostLeftBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
-	int GetMostBottomBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
-	int GetMostRightBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
-	int GetMostTopBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	int32 GetMostLeftBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	int32 GetMostBottomBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	int32 GetMostRightBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	int32 GetMostTopBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
 	
 	void ClearField();
 	void InitField();
@@ -88,8 +101,30 @@ protected:
 	void RestorePoint();
 	
 	void RotateFigure(TArray<TObjectPtr<UUT_Brick>>& Figure, bool bRight = true, bool bSaveCurrentPosition = false);
-	
 
 	virtual void BeginPlay() override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	
+private:
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UInputMappingContext> InputMappingContext;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UInputAction> MoveAction;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UInputAction> DropAction;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UInputAction> RotateAction;
+	
+	UPROPERTY(EditAnywhere)
+	TArray<float> Speed;
+	
+	
+	void Move(const FInputActionValue& Value);
+	void Drop();
+	void DropRelease();
+	void Rotate();	
 };

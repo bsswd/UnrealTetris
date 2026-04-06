@@ -1,14 +1,17 @@
 ﻿// Unreal Tetris Game. Made by Alex Sinkin. (c)
 
 #include "UnrealTetris/Public/Core/UT_MainField.h"
+
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "Camera/CameraComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Core/UT_Brick.h"
 #include "UObject/ConstructorHelpers.h"
 
-#define CYCLEFOR(I) for (int i = 0; i < I; i++)
+#define CYCLEFOR(I) for (int32 i = 0; i < I; i++)
 
-int FigureArr[7][4] = 
+int32 FigureArr[7][4] = 
 	{
 	{0, 2, 4, 6}, // I
 	{0, 2, 3, 5}, // S
@@ -18,6 +21,7 @@ int FigureArr[7][4] =
 	{0, 2, 4, 5}, // L
 	{1, 3, 4, 5}, // J
 	}; 
+
 
 AUT_MainField::AUT_MainField()
 {
@@ -65,9 +69,22 @@ AUT_MainField::AUT_MainField()
 	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color6.MI_Color6")).Object);
 	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color7.MI_Color7")).Object);
 	
+	Speed.Add(1.f);
+	Speed.Add(0.9f);
+	Speed.Add(0.8f);
+	Speed.Add(0.7f);
+	Speed.Add(0.6f);
+	Speed.Add(0.5f);
+	Speed.Add(0.4f);
+	Speed.Add(0.3f);
+	Speed.Add(0.2f);
+	Speed.Add(0.04f);
+	
 	bIsGameInProgress = false;
+	
+	CurrentLevel = 0;
+	CurrentSpeed = 0;
 }
-
 
 void AUT_MainField::BeginPlay()
 {
@@ -84,22 +101,97 @@ void AUT_MainField::BeginPlay()
 		
 	bIsGameInProgress = true;
 	
-	GetWorldTimerManager().SetTimer(MoveDownTimerHandle,
+	GetWorldTimerManager().SetTimer(MoveVerticalTimerHandle,
 									this,
-									&AUT_MainField::MoveDownByTimer,
-									1.f,
+									&AUT_MainField::MoveVerticalByTimer,
+									Speed[CurrentSpeed],
 									true,
-									1.f);
+									Speed[CurrentSpeed]);
 }
+
+/** ------------------------------ INPUT ---------------------------------------------- **/
 
 void AUT_MainField::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	
+	UEnhancedInputLocalPlayerSubsystem* InputSubsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetWorld()->GetFirstLocalPlayerFromController());
+	if (!IsValid(InputSubsystem)) return;
+	
+	InputSubsystem->AddMappingContext(InputMappingContext, 0);
+	
+	UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent);
+	if (!IsValid(EnhancedInputComponent)) return;
+	
+	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Started, this, &ThisClass::Move);
+	EnhancedInputComponent->BindAction(DropAction, ETriggerEvent::Started, this, &ThisClass::Drop);
+	EnhancedInputComponent->BindAction(DropAction, ETriggerEvent::Completed, this, &ThisClass::DropRelease);
+	EnhancedInputComponent->BindAction(RotateAction, ETriggerEvent::Started, this, &ThisClass::Rotate);
 }
+
+void AUT_MainField::Move(const FInputActionValue& Value)
+{
+	UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Move()"));
+	
+	if (!bIsGameInProgress)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Move() --- Game not in progress"));
+		return;
+	}
+	
+	const float MoveValue = Value.Get<float>();
+ 
+	if (FMath::IsNearlyZero(MoveValue)) return;
+	
+	bool bMoveRight = MoveValue > 0.f;
+	
+	MoveHorizontalCurrentFigure(1, bMoveRight, true);
+	
+	if (CheckCurrentFigurePosition())
+	{
+		RestorePoint();
+	}
+	else
+	{
+		ApplyFigurePoint(CurrentFigure);
+	}
+}
+
+void AUT_MainField::Drop()
+{
+	CurrentSpeed = Speed.Num() - 1;
+	
+	GetWorldTimerManager().SetTimer(MoveVerticalTimerHandle,
+									this,
+									&AUT_MainField::MoveVerticalByTimer,
+									Speed[CurrentSpeed],
+									true,
+									0.f);
+}
+
+void AUT_MainField::DropRelease()
+{
+	CurrentSpeed = CurrentLevel;
+	
+	GetWorldTimerManager().SetTimer(MoveVerticalTimerHandle,
+									this,
+									&AUT_MainField::MoveVerticalByTimer,
+									Speed[CurrentSpeed],
+									true,
+									Speed[CurrentSpeed]);
+}
+
+void AUT_MainField::Rotate()
+{
+	RotateFigure(CurrentFigure);
+}
+
+
+/** ------------------------------ FIELD ---------------------------------------------- **/
 
 void AUT_MainField::ClearField()
 {	
-	for (int i = 0; i < WIDTHCELLS * HEIGHTCELLS; i++)
+	for (int32 i = 0; i < WIDTHCELLS * HEIGHTCELLS; i++)
 	{
 		if (Field[i] != nullptr)
 		{
@@ -128,7 +220,7 @@ void AUT_MainField::InitField()
 {
 	Field.Reserve(WIDTHCELLS * HEIGHTCELLS + 1);
 	
-	for (int i = 0; i < WIDTHCELLS * HEIGHTCELLS; i++)
+	for (int32 i = 0; i < WIDTHCELLS * HEIGHTCELLS; i++)
 	{
 		Field.Add(nullptr);
 	}
@@ -146,9 +238,11 @@ void AUT_MainField::InitField()
 	}
 }
 
+/** ------------------------------ FIGURE ---------------------------------------------- **/
+
 void AUT_MainField::CreateNextFigure()
 {
-	int NextElement = FMath::Rand() % 7;
+	int32 NextElement = FMath::Rand() % 7;
 	
 	CYCLEFOR(4)
 	{
@@ -161,12 +255,10 @@ void AUT_MainField::CreateNextFigure()
 		NextFigure[i]->Brick->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")));
 		NextFigure[i]->Brick->SetMaterial(0, BrickColors[NextElement]);
 		NextFigure[i]->Brick->SetRelativeRotation(FRotator(0.f));
-		//NextFigure[i]->Brick->SetRelativeScale3D(FVector(0.9f));
-		
-		//NextFigure[i]->ApplyPoint();
+		NextFigure[i]->Brick->SetRelativeScale3D(FVector(0.9f));
 	}
 	
-	int NextRotation = FMath::Rand() % 6;
+	int32 NextRotation = FMath::Rand() % 6;
 	
 	CYCLEFOR(NextRotation)
 	{
@@ -193,7 +285,7 @@ void AUT_MainField::StartFigure()
 	{
 		MoveVerticalCurrentFigure(1, false);
 		bIsGameInProgress = false;
-		GetWorld()->GetTimerManager().PauseTimer(MoveDownTimerHandle);
+		GetWorld()->GetTimerManager().PauseTimer(MoveVerticalTimerHandle);
 	}
 	
 	ApplyFigurePoint(CurrentFigure);
@@ -226,15 +318,105 @@ void AUT_MainField::RestorePoint()
 	}
 }
 
-void AUT_MainField::RotateFigure(TArray<TObjectPtr<UUT_Brick>>& Figure, bool bRight, bool bSaveCurrentPosition)
+void AUT_MainField::ReleaseFigure()
 {
-	CYCLEFOR(4)
+	if (CurrentFigure[GetMostTopBrick(CurrentFigure)]->CurrentCoords.Y >= HEIGHTCELLS)
 	{
-		if (i == 1) continue;
+		bIsGameInProgress = false;
+		GetWorldTimerManager().PauseTimer(MoveVerticalTimerHandle);
+	}
+	else
+	{
+		CYCLEFOR(4)
+		{
+			Field[WIDTHCELLS * CurrentFigure[i]->CurrentCoords.Y + CurrentFigure[i]->CurrentCoords.X] = CurrentFigure[i]->Brick;
+		}
 		
-		Figure[i]->RotateBrick(FVector2D(Figure[1]->CurrentCoords.X, Figure[1]->CurrentCoords.Y), bRight, bSaveCurrentPosition);
+		StartFigure();
+		CreateNextFigure();
+	}
+	
+	CheckRow();
+}
+
+void AUT_MainField::DeleteRow()
+{
+	static int32 Count = 0;
+	static float Cf = 0.f;
+	
+	if (Count == 6)
+	{
+		Count = 0;
+	}
+	
+	++Count;
+	
+	if (Count < 6)
+	{
+		Cf = 1 - Count * 0.2f;
+		
+		for (int32 ElementIndex = 0; ElementIndex < FullRows.Num(); ++ElementIndex)
+		{
+			int32 Row = FullRows[ElementIndex];
+			
+			for (int32 Col = 0; Col < WIDTHCELLS; ++Col)
+			{
+				if (Cf == 0)
+				{
+					Field[WIDTHCELLS * Row + Col]->DestroyComponent();
+					Field[WIDTHCELLS * Row + Col] = nullptr;
+				}
+
+				else
+				{
+					Field[WIDTHCELLS * Row + Col]->SetRelativeScale3D(FVector(Cf));
+				}
+			}
+		}
+	}
+	
+	else if (Count == 6)
+	{
+		int32 RowNumber = 1;
+		
+		for (int32 Row = FullRows[0] + 1; Row < HEIGHTCELLS; ++Row)
+		{
+			int32 NullCount = 0;
+			
+			for (int32 Col = 0; Col < WIDTHCELLS; ++Col)
+			{
+				if (Field[WIDTHCELLS * Row + Col] != nullptr)
+				{
+					FVector CurrentLocation = Field[WIDTHCELLS * Row + Col]->GetRelativeLocation();
+					Field[WIDTHCELLS * Row + Col]->SetRelativeLocation(FVector(CurrentLocation.X, CurrentLocation.Y, 100 * (Row - RowNumber)));
+					Field[WIDTHCELLS * (Row - RowNumber) + Col] = Field[WIDTHCELLS * Row + Col];
+					Field[WIDTHCELLS * Row + Col] = nullptr;
+				}
+				else
+				{
+					++NullCount;
+				}
+			}
+			
+			if (NullCount == WIDTHCELLS)
+			{
+				++RowNumber;
+			}
+		}
+		
+		bIsGameInProgress = true;
+		GetWorld()->GetTimerManager().PauseTimer(ClearRowTimerHandle);
+		
+		GetWorldTimerManager().SetTimer(MoveVerticalTimerHandle,
+									this,
+									&AUT_MainField::MoveVerticalByTimer,
+									Speed[CurrentSpeed],
+									true,
+									0.f);
 	}
 }
+
+/** ------------------------------ CHECKS ---------------------------------------------- **/
 
 bool AUT_MainField::CheckNewFigurePosition()
 {
@@ -267,23 +449,11 @@ bool AUT_MainField::CheckCurrentFigurePosition()
 	return false;
 }
 
-void AUT_MainField::MoveVerticalCurrentFigure(int Amount, bool bBottom, bool bSaveCurrentPosition)
+int32 AUT_MainField::GetMostLeftBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 {
-	CYCLEFOR(4)
-	{
-		CurrentFigure[i]->SetPoint(FVector2D(0, Amount * (bBottom ? -1 : 1)), bSaveCurrentPosition);
-	}
-}
-
-void AUT_MainField::MoveHorizontalCurrentFigure(int Amount, bool bRight, bool bSaveCurrentPosition)
-{
-}
-
-int AUT_MainField::GetMostLeftBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
-{
-	int MostLeftBrick = 0;
+	int32 MostLeftBrick = 0;
 	
-	for (int i = 1; i < 4; ++i)
+	for (int32 i = 1; i < 4; ++i)
 	{
 		if (Figure[MostLeftBrick]->CurrentCoords.X > Figure[i]->CurrentCoords.X)
 		{
@@ -293,11 +463,11 @@ int AUT_MainField::GetMostLeftBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 	return MostLeftBrick;
 }
 
-int AUT_MainField::GetMostBottomBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
+int32 AUT_MainField::GetMostBottomBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 {
-	int MostBottomBrick = 0;
+	int32 MostBottomBrick = 0;
 	
-	for (int i = 1; i < 4; ++i)
+	for (int32 i = 1; i < 4; ++i)
 	{
 		if (Figure[MostBottomBrick]->CurrentCoords.Y > Figure[i]->CurrentCoords.Y)
 		{
@@ -308,11 +478,11 @@ int AUT_MainField::GetMostBottomBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 	return MostBottomBrick;
 }
 
-int AUT_MainField::GetMostRightBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
+int32 AUT_MainField::GetMostRightBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 {
-	int MostRightBrick = 0;
+	int32 MostRightBrick = 0;
 	
-	for (int i = 1; i < 4; ++i)
+	for (int32 i = 1; i < 4; ++i)
 	{
 		if (Figure[MostRightBrick]->CurrentCoords.X < Figure[i]->CurrentCoords.X)
 		{
@@ -323,11 +493,11 @@ int AUT_MainField::GetMostRightBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 	return MostRightBrick;
 }
 
-int AUT_MainField::GetMostTopBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
+int32 AUT_MainField::GetMostTopBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 {
-	int MostTopBrick = 0;
+	int32 MostTopBrick = 0;
 	
-	for (int i = 1; i < 4; ++i)
+	for (int32 i = 1; i < 4; ++i)
 	{
 		if (Figure[MostTopBrick]->CurrentCoords.Y < Figure[i]->CurrentCoords.Y)
 		{
@@ -338,11 +508,69 @@ int AUT_MainField::GetMostTopBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
 	return MostTopBrick;
 }
 
-void AUT_MainField::MoveDownByTimer()
+void AUT_MainField::CheckRow()
 {
 	if (!bIsGameInProgress)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::MoveDownByTimer --- Game is not i prigress"));
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::CheckRow --- Game is not in progress"));
+		return;
+	}
+	
+	FullRows.Empty();
+	
+	for (int32 Row = 0, Col; Row < HEIGHTCELLS; ++Row)
+	{
+		for (Col = 0; Col < WIDTHCELLS; ++Col)
+		{
+			if (Field[WIDTHCELLS * Row + Col] == nullptr)
+			{
+				break;
+			}
+		}
+		
+		if (Col == WIDTHCELLS)
+		{
+			FullRows.Add(Row);
+		}
+	}
+	
+	if (FullRows.Num() > 0)
+	{
+		bIsGameInProgress = false;
+		GetWorld()->GetTimerManager().SetTimer(
+									ClearRowTimerHandle,
+									this,
+									&AUT_MainField::DeleteRow,
+									0.1f,
+									true,
+									0.f);
+	}
+}
+
+
+/** ------------------------------ MOVEMENT ---------------------------------------------- **/
+
+void AUT_MainField::MoveVerticalCurrentFigure(int Amount, bool bBottom, bool bSaveCurrentPosition)
+{
+	CYCLEFOR(4)
+	{
+		CurrentFigure[i]->SetPoint(FVector2D(0, Amount * (bBottom ? -1 : 1)), bSaveCurrentPosition);
+	}
+}
+
+void AUT_MainField::MoveHorizontalCurrentFigure(int Amount, bool bRight, bool bSaveCurrentPosition)
+{
+	CYCLEFOR(4)
+	{
+		CurrentFigure[i]->SetPoint(FVector2D(Amount * (bRight ? 1 : -1), 0), bSaveCurrentPosition);
+	}
+}
+
+void AUT_MainField::MoveVerticalByTimer()
+{
+	if (!bIsGameInProgress)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::MoveDownByTimer --- Game is not in progress"));
 		return;
 	}
 	
@@ -359,22 +587,32 @@ void AUT_MainField::MoveDownByTimer()
 	}
 }
 
-void AUT_MainField::ReleaseFigure()
+void AUT_MainField::MoveHorizontalByTimer()
 {
-	if (CurrentFigure[GetMostTopBrick(CurrentFigure)]->CurrentCoords.Y >= HEIGHTCELLS)
+	if (!bIsGameInProgress)
 	{
-		bIsGameInProgress = false;
-		GetWorldTimerManager().PauseTimer(MoveDownTimerHandle);
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::MoveRightByTimer --- Game is not i prigress"));
+		return;
+	}
+	
+	MoveHorizontalCurrentFigure(1, true, true);
+	if (CheckCurrentFigurePosition())
+	{
+		RestorePoint();
+		ReleaseFigure();
 	}
 	else
 	{
-		CYCLEFOR(4)
-		{
-			Field[WIDTHCELLS * CurrentFigure[i]->CurrentCoords.Y + CurrentFigure[i]->CurrentCoords.X] = CurrentFigure[i]->Brick;
-		}
+		ApplyFigurePoint(CurrentFigure);
+	}
+}
+
+void AUT_MainField::RotateFigure(TArray<TObjectPtr<UUT_Brick>>& Figure, bool bRight, bool bSaveCurrentPosition)
+{
+	CYCLEFOR(4)
+	{
+		if (i == 1) continue;
 		
-		StartFigure();
-		CreateNextFigure();
-		
+		Figure[i]->RotateBrick(FVector2D(Figure[1]->CurrentCoords.X, Figure[1]->CurrentCoords.Y), bRight, bSaveCurrentPosition);
 	}
 }
