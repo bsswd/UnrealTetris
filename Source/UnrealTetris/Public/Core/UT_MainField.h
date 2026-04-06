@@ -26,10 +26,8 @@ public:
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<USceneComponent> MainScene;
 	
-	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UCameraComponent> Camera;
-	
 	
 	UPROPERTY(EditAnywhere)
     TObjectPtr<USceneComponent> Borders;
@@ -46,6 +44,9 @@ public:
 	
 	TArray<TObjectPtr<UStaticMeshComponent>> Field;
 	
+	void MoveDownByTimer();
+	void ReleaseFigure();
+	
 
 protected:
 	
@@ -58,14 +59,35 @@ protected:
 	UPROPERTY()
 	TArray<TObjectPtr<UMaterialInstance>> BrickColors; 
 	
+	bool bIsGameInProgress;
+	
+	FTimerHandle MoveDownTimerHandle;
+	FTimerHandle MoveRightTimerHandle;
+	FTimerHandle MoveLeftTimerHandle;
+	FTimerHandle ClearRowTimerHandle;
+	
+	bool CheckCurrentFigurePosition();
+	bool CheckNewFigurePosition();
+	
+	void MoveVerticalCurrentFigure(int Amount, bool bBottom = true, bool bSaveCurrentPosition = false);
+	void MoveHorizontalCurrentFigure(int Amount, bool bRight =true,	bool bSaveCurrentPosition = false);
+	
+	int GetMostLeftBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	int GetMostBottomBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	int GetMostRightBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	int GetMostTopBrick(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	
 	void ClearField();
 	void InitField();
 	
 	void CreateNextFigure();
 	void StartFigure();
 	
-	void SetPointFigure(FVector2D Point, TArray<TObjectPtr<UUT_Brick>>& Figure, bool bSaveCurrentPosition = false);
-	void ApplyPointFigure(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	void SetFigurePoint(FVector2D Point, TArray<TObjectPtr<UUT_Brick>>& Figure, bool bSaveCurrentPosition = false);
+	void ApplyFigurePoint(TArray<TObjectPtr<UUT_Brick>>& Figure);
+	void RestorePoint();
+	
+	void RotateFigure(TArray<TObjectPtr<UUT_Brick>>& Figure, bool bRight = true, bool bSaveCurrentPosition = false);
 	
 
 	virtual void BeginPlay() override;

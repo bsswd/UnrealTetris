@@ -57,31 +57,45 @@ AUT_MainField::AUT_MainField()
 	
 	InitField();
 	
-	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Blue.MI_Blue")).Object);
-	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Red.MI_Red")).Object);
-	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Cyan.MI_Cyan")).Object);
-	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Green.MI_Green")).Object);
-	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Magenta.MI_Magenta")).Object);
-	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Orange.MI_Orange")).Object);
-	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Yellow.MI_Yellow")).Object);
+	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color1.MI_Color1")).Object);
+	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color2.MI_Color2")).Object);
+	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color3.MI_Color3")).Object);
+	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color4.MI_Color4")).Object);
+	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color5.MI_Color5")).Object);
+	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color6.MI_Color6")).Object);
+	BrickColors.Add(ConstructorHelpers::FObjectFinder<UMaterialInstance>(TEXT("/Game/Materials/MI_Color7.MI_Color7")).Object);
+	
+	bIsGameInProgress = false;
 }
+
 
 void AUT_MainField::BeginPlay()
 {
 	Super::BeginPlay();
 	
 	SetActorLocation(FVector(0.f));
+	SetActorRotation(FRotator(0.f));
 	
 	ClearField();
 	
 	CreateNextFigure();
+	StartFigure();
+	CreateNextFigure();
+		
+	bIsGameInProgress = true;
+	
+	GetWorldTimerManager().SetTimer(MoveDownTimerHandle,
+									this,
+									&AUT_MainField::MoveDownByTimer,
+									1.f,
+									true,
+									1.f);
 }
 
 void AUT_MainField::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 }
-
 
 void AUT_MainField::ClearField()
 {	
@@ -147,13 +161,20 @@ void AUT_MainField::CreateNextFigure()
 		NextFigure[i]->Brick->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube")));
 		NextFigure[i]->Brick->SetMaterial(0, BrickColors[NextElement]);
 		NextFigure[i]->Brick->SetRelativeRotation(FRotator(0.f));
-		NextFigure[i]->Brick->SetRelativeScale3D(FVector(0.9f));
+		//NextFigure[i]->Brick->SetRelativeScale3D(FVector(0.9f));
 		
-		NextFigure[i]->ApplyPoint();
+		//NextFigure[i]->ApplyPoint();
 	}
 	
-	SetPointFigure(FVector2D(12.f, 12.f), NextFigure, false);
-	ApplyPointFigure(NextFigure);
+	int NextRotation = FMath::Rand() % 6;
+	
+	CYCLEFOR(NextRotation)
+	{
+		RotateFigure(NextFigure);
+	}
+	
+	SetFigurePoint(FVector2D(12.f, 12.f), NextFigure, false);
+	ApplyFigurePoint(NextFigure);
 }
 
 void AUT_MainField::StartFigure()
@@ -166,22 +187,194 @@ void AUT_MainField::StartFigure()
 		NextFigure[i]->Brick = nullptr;
 	}
 	
-	SetPointFigure(FVector2D(4.f, 18.f), CurrentFigure);
+	SetFigurePoint(FVector2D(4.f, 18.f), CurrentFigure);
+	
+	while (CheckNewFigurePosition())
+	{
+		MoveVerticalCurrentFigure(1, false);
+		bIsGameInProgress = false;
+		GetWorld()->GetTimerManager().PauseTimer(MoveDownTimerHandle);
+	}
+	
+	ApplyFigurePoint(CurrentFigure);
 }
 
-void AUT_MainField::SetPointFigure(FVector2D Point, TArray<TObjectPtr<UUT_Brick>>& Figure,  bool bSaveCurrentPosition)
+void AUT_MainField::SetFigurePoint(FVector2D Point, TArray<TObjectPtr<UUT_Brick>>& Figure,  bool bSaveCurrentPosition)
 {
+	FVector2D DeltaPoint = FVector2D(Point.X - Figure[GetMostLeftBrick(Figure)]->CurrentCoords.X,
+										Point.Y - Figure[GetMostBottomBrick(Figure)]->CurrentCoords.Y);
+	
 	CYCLEFOR(4)
 	{
-		FVector2D DeltaPoint = FVector2D(Point.X - Figure[i]->CurrentCoords.X,Point.Y - Figure[i]->CurrentCoords.Y);
 		Figure[i]->SetPoint(DeltaPoint, bSaveCurrentPosition);	
 	}
 }
 
-void AUT_MainField::ApplyPointFigure(TArray<TObjectPtr<UUT_Brick>>& Figure)
+void AUT_MainField::ApplyFigurePoint(TArray<TObjectPtr<UUT_Brick>>& Figure)
 {
 	CYCLEFOR(4)
 	{
 		Figure[i]->ApplyPoint();
+	}
+}
+
+void AUT_MainField::RestorePoint()
+{
+	CYCLEFOR(4)
+	{
+		CurrentFigure[i]->RestorePoint();
+	}
+}
+
+void AUT_MainField::RotateFigure(TArray<TObjectPtr<UUT_Brick>>& Figure, bool bRight, bool bSaveCurrentPosition)
+{
+	CYCLEFOR(4)
+	{
+		if (i == 1) continue;
+		
+		Figure[i]->RotateBrick(FVector2D(Figure[1]->CurrentCoords.X, Figure[1]->CurrentCoords.Y), bRight, bSaveCurrentPosition);
+	}
+}
+
+bool AUT_MainField::CheckNewFigurePosition()
+{
+	CYCLEFOR(4)
+	{
+		if (CurrentFigure[i]->CurrentCoords.Y < HEIGHTCELLS &&
+			Field[WIDTHCELLS * CurrentFigure[i]->CurrentCoords.Y + CurrentFigure[i]->CurrentCoords.X] != nullptr)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+bool AUT_MainField::CheckCurrentFigurePosition()
+{
+	CYCLEFOR(4)
+	{
+		if 	(CurrentFigure[i]->CurrentCoords.Y < 0 ||
+			CurrentFigure[i]->CurrentCoords.X < 0 ||
+			CurrentFigure[i]->CurrentCoords.X >= WIDTHCELLS ||
+			(CurrentFigure[i]->CurrentCoords.Y < HEIGHTCELLS &&
+			Field[WIDTHCELLS * CurrentFigure[i]->CurrentCoords.Y + CurrentFigure[i]->CurrentCoords.X] != nullptr))
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+void AUT_MainField::MoveVerticalCurrentFigure(int Amount, bool bBottom, bool bSaveCurrentPosition)
+{
+	CYCLEFOR(4)
+	{
+		CurrentFigure[i]->SetPoint(FVector2D(0, Amount * (bBottom ? -1 : 1)), bSaveCurrentPosition);
+	}
+}
+
+void AUT_MainField::MoveHorizontalCurrentFigure(int Amount, bool bRight, bool bSaveCurrentPosition)
+{
+}
+
+int AUT_MainField::GetMostLeftBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
+{
+	int MostLeftBrick = 0;
+	
+	for (int i = 1; i < 4; ++i)
+	{
+		if (Figure[MostLeftBrick]->CurrentCoords.X > Figure[i]->CurrentCoords.X)
+		{
+			MostLeftBrick = i;
+		}	
+	}
+	return MostLeftBrick;
+}
+
+int AUT_MainField::GetMostBottomBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
+{
+	int MostBottomBrick = 0;
+	
+	for (int i = 1; i < 4; ++i)
+	{
+		if (Figure[MostBottomBrick]->CurrentCoords.Y > Figure[i]->CurrentCoords.Y)
+		{
+			MostBottomBrick = i;
+		}
+	}
+	
+	return MostBottomBrick;
+}
+
+int AUT_MainField::GetMostRightBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
+{
+	int MostRightBrick = 0;
+	
+	for (int i = 1; i < 4; ++i)
+	{
+		if (Figure[MostRightBrick]->CurrentCoords.X < Figure[i]->CurrentCoords.X)
+		{
+			MostRightBrick = i;
+		}
+	}
+	
+	return MostRightBrick;
+}
+
+int AUT_MainField::GetMostTopBrick(TArray<TObjectPtr<UUT_Brick>>& Figure)
+{
+	int MostTopBrick = 0;
+	
+	for (int i = 1; i < 4; ++i)
+	{
+		if (Figure[MostTopBrick]->CurrentCoords.Y < Figure[i]->CurrentCoords.Y)
+		{
+			MostTopBrick = i;
+		}
+	}
+	
+	return MostTopBrick;
+}
+
+void AUT_MainField::MoveDownByTimer()
+{
+	if (!bIsGameInProgress)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::MoveDownByTimer --- Game is not i prigress"));
+		return;
+	}
+	
+	MoveVerticalCurrentFigure(1, true, true);
+	
+	if (CheckCurrentFigurePosition())
+	{
+		RestorePoint();
+		ReleaseFigure();
+	}
+	else
+	{
+		ApplyFigurePoint(CurrentFigure);
+	}
+}
+
+void AUT_MainField::ReleaseFigure()
+{
+	if (CurrentFigure[GetMostTopBrick(CurrentFigure)]->CurrentCoords.Y >= HEIGHTCELLS)
+	{
+		bIsGameInProgress = false;
+		GetWorldTimerManager().PauseTimer(MoveDownTimerHandle);
+	}
+	else
+	{
+		CYCLEFOR(4)
+		{
+			Field[WIDTHCELLS * CurrentFigure[i]->CurrentCoords.Y + CurrentFigure[i]->CurrentCoords.X] = CurrentFigure[i]->Brick;
+		}
+		
+		StartFigure();
+		CreateNextFigure();
+		
 	}
 }
