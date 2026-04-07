@@ -99,6 +99,10 @@ public:
 	void SwitchToMenu();
 	
 	
+	UFUNCTION(BlueprintCallable)
+	void UpdateScore(const int InScore);
+	
+	
 protected:
 	
 	virtual void NativeConstruct() override;

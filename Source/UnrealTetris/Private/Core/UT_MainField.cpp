@@ -427,7 +427,8 @@ void AUT_MainField::DeleteRow()
 					}
 					
 					UGameplayStatics::PlaySound2D(this, ClearRowSound);
-					Score += 10;
+					Score += 1;
+					MainWidget->UpdateScore(Score);
 				}
 
 				else
@@ -674,6 +675,11 @@ void AUT_MainField::MoveVerticalByTimer()
 	else
 	{
 		ApplyFigurePoint(CurrentFigure);
+	}
+	
+	if (Score >= 2)
+	{
+		CurrentSpeed = 8;
 	}
 }
 

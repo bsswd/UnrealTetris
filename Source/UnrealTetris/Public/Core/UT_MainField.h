@@ -149,7 +149,7 @@ private:
 	USoundBase* RotateSound;
 	
 	
-	int32 Score;
+	int32 Score = 0;
 	
 	
 	UFUNCTION()

@@ -3,6 +3,7 @@
 
 #include "UI/UT_MainWidget.h"
 #include "Components/Button.h"
+#include "Components/TextBlock.h"
 #include "Components/WidgetSwitcher.h"
 
 
@@ -93,4 +94,9 @@ void UUT_MainWidget::SwitchToGame()
 void UUT_MainWidget::SwitchToMenu()
 {
 	Switcher->SetActiveWidgetIndex(1);
+}
+
+void UUT_MainWidget::UpdateScore(const int InScore)
+{
+	Score->SetText(FText::FromString(FString::FromInt(InScore)));
 }
