@@ -93,7 +93,7 @@ AUT_MainField::AUT_MainField()
 void AUT_MainField::BeginPlay()
 {
 	Super::BeginPlay();
-	
+		
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 
 	if (!MainWidgetClass)
@@ -117,28 +117,23 @@ void AUT_MainField::BeginPlay()
 	MainWidget->OnDropReleased.AddDynamic(this, &AUT_MainField::DropRelease);
 	
 	MainWidget->OnMoveClicked.AddDynamic(this, &AUT_MainField::MoveFromUI);
+	MainWidget->OnStartClicked.AddDynamic(this, &AUT_MainField::OnStartGame);
 	
-	MainWidget->SwitchToGame();
-	
-	
+	MainWidget->SwitchToMenu();
+		
 	SetActorLocation(FVector(0.f));
 	SetActorRotation(FRotator(0.f));
 	
-	ClearField();
-	
-	CreateNextFigure();
-	StartFigure();
-	CreateNextFigure();
-		
-	bIsGameInProgress = true;
-	
-	GetWorldTimerManager().SetTimer(MoveVerticalTimerHandle,
-									this,
-									&AUT_MainField::MoveVerticalByTimer,
-									Speed[CurrentSpeed],
-									true,
-									Speed[CurrentSpeed]);
+	OnStartGame();
 }
+
+void AUT_MainField::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	
+	GetWorldTimerManager().ClearAllTimersForObject(this);
+}
+
 
 /** ------------------------------ INPUT ---------------------------------------------- **/
 
@@ -162,8 +157,6 @@ void AUT_MainField::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 
 void AUT_MainField::Move(const FInputActionValue& Value)
 {
-	UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Move()"));
-	
 	if (!bIsGameInProgress)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Move() --- Game not in progress"));
@@ -376,6 +369,7 @@ void AUT_MainField::ReleaseFigure()
 	{
 		bIsGameInProgress = false;
 		GetWorldTimerManager().PauseTimer(MoveVerticalTimerHandle);
+		UE_LOG(LogTemp, Warning, TEXT("End Game"))
 	}
 	else
 	{
@@ -433,6 +427,7 @@ void AUT_MainField::DeleteRow()
 					}
 					
 					UGameplayStatics::PlaySound2D(this, ClearRowSound);
+					Score += 10;
 				}
 
 				else
@@ -613,6 +608,33 @@ void AUT_MainField::CheckRow()
 									true,
 									0.f);
 	}
+}
+
+void AUT_MainField::OnStartGame()
+{
+	Score = 0;
+	
+	ClearField();
+	
+	CreateNextFigure();
+	StartFigure();
+	CreateNextFigure();
+		
+	bIsGameInProgress = true;
+	
+	GetWorldTimerManager().SetTimer(MoveVerticalTimerHandle,
+									this,
+									&AUT_MainField::MoveVerticalByTimer,
+									Speed[CurrentSpeed],
+									true,
+									Speed[CurrentSpeed]);
+}
+
+void AUT_MainField::OnGameOver()
+{	
+	UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::OnGameOver()"));
+	
+	MainWidget->SwitchToMenu();
 }
 
 

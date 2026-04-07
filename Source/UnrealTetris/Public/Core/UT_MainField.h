@@ -111,6 +111,7 @@ protected:
 	void RotateFigure(TArray<TObjectPtr<UUT_Brick>>& Figure, bool bRight = true, bool bSaveCurrentPosition = false);
 
 	virtual void BeginPlay() override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	
 private:
@@ -148,6 +149,9 @@ private:
 	USoundBase* RotateSound;
 	
 	
+	int32 Score;
+	
+	
 	UFUNCTION()
 	void Move(const FInputActionValue& Value);
 	
@@ -161,5 +165,11 @@ private:
 	void DropRelease();
 	
 	UFUNCTION()
-	void Rotate();	
+	void Rotate();
+	
+	UFUNCTION()
+	void OnStartGame();
+	
+	UFUNCTION()
+	void OnGameOver();
 };

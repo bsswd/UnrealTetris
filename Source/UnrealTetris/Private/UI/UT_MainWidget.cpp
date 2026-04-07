@@ -45,6 +45,7 @@ void UUT_MainWidget::NativeConstruct()
 void UUT_MainWidget::OnStartButtonTap()
 {
 	UE_LOG(LogTemp, Warning, TEXT("UUT_MainWidget::OnStartButtonTap()"));
+	SwitchToGame();
 	OnStartClicked.Broadcast();
 }
 
