@@ -86,8 +86,8 @@ AUT_MainField::AUT_MainField()
 	
 	bIsGameInProgress = false;
 	
-	CurrentLevel = 0;
 	CurrentSpeed = 0;
+	CurrentLevel = 0;
 }
 
 void AUT_MainField::BeginPlay()
@@ -133,7 +133,6 @@ void AUT_MainField::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	
 	GetWorldTimerManager().ClearAllTimersForObject(this);
 }
-
 
 /** ------------------------------ INPUT ---------------------------------------------- **/
 
@@ -230,7 +229,6 @@ void AUT_MainField::Rotate()
 	}
 	UGameplayStatics::PlaySound2D(this, RotateSound);
 }
-
 
 /** ------------------------------ FIELD ---------------------------------------------- **/
 
@@ -613,7 +611,11 @@ void AUT_MainField::CheckRow()
 
 void AUT_MainField::OnStartGame()
 {
-	Score = 0;
+	Score = 0;	
+	MainWidget->UpdateScore(Score);
+	
+	CurrentSpeed = 0;	
+	MainWidget->UpdateLevel(CurrentLevel + 1);
 	
 	ClearField();
 	
@@ -629,6 +631,13 @@ void AUT_MainField::OnStartGame()
 									Speed[CurrentSpeed],
 									true,
 									Speed[CurrentSpeed]);
+	
+	GetWorldTimerManager().SetTimer(DifficultyTimerHandle,
+									this,
+									&AUT_MainField::SetDifficulty,
+									1.f,
+									true,
+									0.f);
 }
 
 void AUT_MainField::OnGameOver()
@@ -638,6 +647,78 @@ void AUT_MainField::OnGameOver()
 	MainWidget->SwitchToMenu();
 }
 
+void AUT_MainField::SetDifficulty()
+{
+	switch (Score / 10)
+	{
+	case 1: 
+		UE_LOG(LogTemp, Log, TEXT("Score reached 100"));
+		CurrentSpeed = 1;
+		CurrentLevel = 1;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 2: 
+		UE_LOG(LogTemp, Log, TEXT("Score reached 200"));
+		CurrentSpeed = 2;
+		CurrentLevel = 2;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 3:
+		
+		UE_LOG(LogTemp, Log, TEXT("Score reached 300"));
+		CurrentSpeed = 3;
+		CurrentLevel = 3;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 4:
+		UE_LOG(LogTemp, Log, TEXT("Score reached 400"));
+		CurrentSpeed = 4;
+		CurrentLevel = 4;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 5:
+		UE_LOG(LogTemp, Log, TEXT("Score reached 500"));
+		CurrentSpeed = 5;
+		CurrentLevel = 5;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 6:
+		UE_LOG(LogTemp, Log, TEXT("Score reached 600"));
+		CurrentSpeed = 6;
+		CurrentLevel = 6;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 7:
+		UE_LOG(LogTemp, Log, TEXT("Score reached 700"));
+		CurrentSpeed = 7;
+		CurrentLevel = 7;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 8:
+		UE_LOG(LogTemp, Log, TEXT("Score reached 800"));
+		CurrentSpeed = 8;
+		CurrentLevel = 8;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	case 9:
+		UE_LOG(LogTemp, Log, TEXT("Score reached 900 or more"));
+		CurrentSpeed = 9;
+		CurrentLevel = 9;
+		MainWidget->UpdateLevel(CurrentLevel + 1);
+		break;
+		
+	default: 
+		break;
+	}
+}
 
 /** ------------------------------ MOVEMENT ---------------------------------------------- **/
 
@@ -675,11 +756,6 @@ void AUT_MainField::MoveVerticalByTimer()
 	else
 	{
 		ApplyFigurePoint(CurrentFigure);
-	}
-	
-	if (Score >= 2)
-	{
-		CurrentSpeed = 8;
 	}
 }
 

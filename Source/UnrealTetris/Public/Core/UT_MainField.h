@@ -52,7 +52,6 @@ public:
 	UPROPERTY()
 	TObjectPtr<UUT_MainWidget> MainWidget;
 	
-	
 	TArray<TObjectPtr<UStaticMeshComponent>> Field;
 	
 	void MoveVerticalByTimer();
@@ -79,9 +78,12 @@ protected:
 	
 	bool bIsGameInProgress;
 	
+	/** Timers **/
+	
 	FTimerHandle MoveVerticalTimerHandle;
 	FTimerHandle MoveHorizontalTimerHandle;
 	FTimerHandle ClearRowTimerHandle;
+	FTimerHandle DifficultyTimerHandle;
 	
 	int32 CurrentLevel;
 	int32 CurrentSpeed;
@@ -172,4 +174,6 @@ private:
 	
 	UFUNCTION()
 	void OnGameOver();
+	
+	void SetDifficulty();
 };

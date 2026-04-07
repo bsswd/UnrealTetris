@@ -100,3 +100,8 @@ void UUT_MainWidget::UpdateScore(const int InScore)
 {
 	Score->SetText(FText::FromString(FString::FromInt(InScore)));
 }
+
+void UUT_MainWidget::UpdateLevel(const int InLevel)
+{
+	Level->SetText(FText::FromString(FString::FromInt(InLevel)));
+}

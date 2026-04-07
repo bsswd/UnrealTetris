@@ -71,36 +71,39 @@ public:
 	FOnMoveActionDelegate OnMoveClicked;
 	
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnStartButtonTap();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnQuitButtonTap();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnLeftButtonTap();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnRightButtonTap();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnDropButtonTap();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnDropButtonRelease();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void OnRotateButtonTap();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void SwitchToGame();
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void SwitchToMenu();
 	
 	
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION()
 	void UpdateScore(const int InScore);
+	
+	UFUNCTION()
+	void UpdateLevel(const int InLevel);
 	
 	
 protected:
