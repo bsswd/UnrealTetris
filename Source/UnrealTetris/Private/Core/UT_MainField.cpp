@@ -149,13 +149,18 @@ void AUT_MainField::SetupPlayerInputComponent(UInputComponent* PlayerInputCompon
 	if (!IsValid(EnhancedInputComponent)) return;
 	
 	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Started, this, &ThisClass::Move);
+	EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &ThisClass::MoveRelease);
+		
 	EnhancedInputComponent->BindAction(DropAction, ETriggerEvent::Started, this, &ThisClass::Drop);
 	EnhancedInputComponent->BindAction(DropAction, ETriggerEvent::Completed, this, &ThisClass::DropRelease);
+	
 	EnhancedInputComponent->BindAction(RotateAction, ETriggerEvent::Started, this, &ThisClass::Rotate);
 }
 
 void AUT_MainField::Move(const FInputActionValue& Value)
 {
+	bIsMoveHorizontal = true;
+	
 	if (!bIsGameInProgress)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Move() --- Game not in progress"));
@@ -164,7 +169,11 @@ void AUT_MainField::Move(const FInputActionValue& Value)
 	
 	const float MoveValue = Value.Get<float>();
  
-	if (FMath::IsNearlyZero(MoveValue)) return;
+	if (FMath::IsNearlyZero(MoveValue))
+	{
+		bIsMoveHorizontal = false;
+		return;
+	}
 	
 	bool bMoveRight = MoveValue > 0.f;
 	
@@ -186,6 +195,11 @@ void AUT_MainField::Move(const FInputActionValue& Value)
 	}
 	
 	UGameplayStatics::PlaySound2D(this, MoveSound);
+}
+
+void AUT_MainField::MoveRelease()
+{
+	bIsMoveHorizontal = false;
 }
 
 void AUT_MainField::MoveFromUI(float Direction)
@@ -220,6 +234,11 @@ void AUT_MainField::DropRelease()
 
 void AUT_MainField::Rotate()
 {
+	if (bIsMoveHorizontal)
+	{
+		return;
+	}
+	
 	RotateFigure(CurrentFigure);
 	
 	if (!RotateSound)
@@ -227,6 +246,7 @@ void AUT_MainField::Rotate()
 		UE_LOG(LogTemp, Warning, TEXT("AUT_MainField::Rotate() --- No RotateSound!"));
 		return;
 	}
+	
 	UGameplayStatics::PlaySound2D(this, RotateSound);
 }
 
@@ -768,10 +788,11 @@ void AUT_MainField::MoveHorizontalByTimer()
 	}
 	
 	MoveHorizontalCurrentFigure(1, true, true);
+	
 	if (CheckCurrentFigurePosition())
 	{
 		RestorePoint();
-		ReleaseFigure();
+		//ReleaseFigure();
 	}
 	else
 	{

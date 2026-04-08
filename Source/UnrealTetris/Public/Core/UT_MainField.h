@@ -153,9 +153,14 @@ private:
 	
 	int32 Score = 0;
 	
+	bool bIsMoveHorizontal = false;
+	
 	
 	UFUNCTION()
 	void Move(const FInputActionValue& Value);
+	
+	UFUNCTION()
+	void MoveRelease();
 	
 	UFUNCTION()
 	void MoveFromUI(float Direction);
